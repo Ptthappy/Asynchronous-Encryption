@@ -64,7 +64,7 @@ public class Main {
     private static void respondClient(String in) throws Exception {
         file = new File(path + in);
         System.out.println(path + in);
-        if(file.exists()) {
+        if(file.exists() && file.isFile()) {
             int x;
             int lastLen = 0;
             byte[][] datablocks = new byte[8962][117]; //Max Size 1Mb

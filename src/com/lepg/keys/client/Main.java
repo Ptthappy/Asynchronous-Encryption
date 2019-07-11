@@ -75,7 +75,7 @@ public class Main {
         while(true) {
             System.out.println("Enter path from a file to send. Enter \"exit\" to exit program");
             userInput = s2.nextLine();
-            if(userInput.equals("exit"))
+            if(userInput.toLowerCase().equals("exit"))
                 break;
             else {
                 speakToServer();
@@ -87,7 +87,6 @@ public class Main {
         objOut.writeObject(userInput);
         System.out.println("Request sent. Waiting for response");
         listenToServer();
-        System.out.println("Transmission complete");
     }
 
     private static void listenToServer() throws Exception {
@@ -105,18 +104,14 @@ public class Main {
             fout = new FileOutputStream(file);
 
             String[] values = input.split(";");
-            Integer byteCount = Integer.parseInt(values[0]);
-            Integer lastLen = Integer.parseInt(values[1]);
+            int byteCount = Integer.parseInt(values[0]);
+            int lastLen = Integer.parseInt(values[1]);
 
             int x, index = 0;
             byte[] dataIn = new byte[(byteCount + 1) * 128 + 32];
             byte[] data = new byte[(byteCount + 1) * 128];
             byte[][] encryptedData = new byte[(byteCount + 1)][128];
             byte[][] decryptedData = new byte[(byteCount + 1)][117];
-
-            //TODO:
-            //Recibir la data encriptada que viene del server
-            //Almacenarlo en encryotedData
 
             while((x = in.read()) != -1) {
                 if (checkBuffers(x))
@@ -125,6 +120,7 @@ public class Main {
                 dataIn[index] = (byte)x;
                 index++;
             }
+
             File encryptedFile = new File(finalPath + "encryptedData");
             encryptedFile.createNewFile();
             ENCfout = new FileOutputStream(encryptedFile);
@@ -148,14 +144,15 @@ public class Main {
                     data[j + i * 117] = decryptedData[i][j];
                 }
             }
-            int eof = ((byteCount + 1) * 117) - (117 - lastLen) + 1;
 
-            for (int i = 0; i < eof; i++) {
+            for (int i = 0; i < ((byteCount + 1) * 117) - (117 - lastLen) + 1; i++) {
                 fout.write(data[i]);
             }
 
+            fout.close();
+            System.out.println("Transmission complete");
         } else {
-            //Mensaje de error como que ei mardito esa dirección no eksiste
+            System.out.println("File not found or access denied");
         }
 
     }
@@ -164,7 +161,7 @@ public class Main {
         for (int i = 31; i > 0; i--) {
             buffer[i] = buffer[i - 1];
         }
-        buffer[0] = (byte)next;
+        buffer[0] = (byte) next;
 
         for (int i = 0; i < 32; i++) {
             if(buffer[i] != 85)
