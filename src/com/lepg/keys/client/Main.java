@@ -19,6 +19,7 @@ public class Main {
     private static InputStream in = null;
     private static ObjectOutputStream objOut = null;
     private static FileOutputStream fout = null;
+    private static FileOutputStream ENCfout = null;
 
     private static String userInput = null;
     private static File file = null;                                                //Java Object to reference the selected file
@@ -97,38 +98,61 @@ public class Main {
             to = userInput.substring(userInput.lastIndexOf('\\'));
         else
             to = userInput;
-        String in = "";
-        if(!(in = ((String)objIn.readObject())).equals("")) {
+        String input = "";
+        if(!(input = ((String)objIn.readObject())).equals("")) {
             file = new File(finalPath, to);
             file.createNewFile();
             fout = new FileOutputStream(file);
 
-            String[] values = in.split(";");
+            String[] values = input.split(";");
             Integer byteCount = Integer.parseInt(values[0]);
             Integer lastLen = Integer.parseInt(values[1]);
 
-            int x, y = 0;
-            byte[][] encryptedData = new byte[byteCount][117];
-            byte[][] decryptedData = new byte[byteCount][117];
-            byte[] data = new byte[byteCount * 117];
+            int x, index = 0;
+            byte[] dataIn = new byte[(byteCount + 1) * 128 + 32];
+            byte[] data = new byte[(byteCount + 1) * 128];
+            byte[][] encryptedData = new byte[(byteCount + 1)][128];
+            byte[][] decryptedData = new byte[(byteCount + 1)][117];
 
             //TODO:
             //Recibir la data encriptada que viene del server
             //Almacenarlo en encryotedData
 
-            for (int i = 0; i < byteCount; i++) {
-                decryptedData[i] = keyManager.decryptData(encryptedData[i], privateKey);
+            while((x = in.read()) != -1) {
+                if (checkBuffers(x))
+                    break;
+
+                dataIn[index] = (byte)x;
+                index++;
+            }
+            File encryptedFile = new File(finalPath + "encryptedData");
+            encryptedFile.createNewFile();
+            ENCfout = new FileOutputStream(encryptedFile);
+
+            for (int i = 0; i < index - 32; i++) {
+                ENCfout.write(dataIn[i]);
             }
 
-            int index = 0;
-            for (int i = 0; i < byteCount; i++) {
-                for (int j = 0; j < 117; j++) {
-                    data[index] = decryptedData[i][j];
+            for (int i = 0; i < encryptedData.length; i++) {
+                for (int j = 0; j < 128; j++) {
+                    encryptedData[i][j] = dataIn[j + i * 128];
                 }
             }
 
-            //TODO:
-            //Escribir data en el archivo de salida
+            for (int i = 0; i < encryptedData.length; i++) {
+                decryptedData[i] = keyManager.decryptData(encryptedData[i], privateKey);
+            }
+
+            for (int i = 0; i < decryptedData.length; i++) {
+                for (int j = 0; j < 117; j++) {
+                    data[j + i * 117] = decryptedData[i][j];
+                }
+            }
+            int eof = ((byteCount + 1) * 117) - (117 - lastLen) + 1;
+
+            for (int i = 0; i < eof; i++) {
+                fout.write(data[i]);
+            }
 
         } else {
             //Mensaje de error como que ei mardito esa dirección no eksiste

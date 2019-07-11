@@ -17,9 +17,9 @@ public class Main {
     private static ServerSocket ss = null;                                             //SS to accept connection
 
     private static ObjectInputStream objIn = null;
-    private static FileReader fin = null;
+    private static FileInputStream fin = null;
     private static ObjectOutputStream objOut;
-    private static BufferedWriter out = null;
+    private static OutputStream out = null;
 
     private static File file = null;                                                   //For referencing a file
 
@@ -68,12 +68,13 @@ public class Main {
             int x;
             int lastLen = 0;
             byte[][] datablocks = new byte[8962][117]; //Max Size 1Mb
-            fin = new FileReader(file);
+            fin = new FileInputStream(file);
+
             int byteCount = 0;
             for (int i = 0; (x = fin.read()) != -1; i++) {
                 datablocks[byteCount][i] = (byte) x;
-                if(i == 117) {
-                    i = 0;
+                if(i == 116) {
+                    i = -1;
                     byteCount++;
                 }
                 lastLen = i;
@@ -85,21 +86,30 @@ public class Main {
             //Enviar un objeto que tenga dos números: la cantidad de bloques y la longitud del último
             objOut.writeObject(byteCount + ";" + lastLen);
 
-            byte[][] encryptedData = new byte[byteCount][117];
-            for (int i = 0; i < byteCount; i++) {
+            byte[][] encryptedData = new byte[byteCount + 1][128];
+            for (int i = 0; i <= byteCount; i++) {
                 encryptedData[i] = keyManager.encryptData(datablocks[i], keys.get("client"));
             }
 
-            for (int i = 0; i < encryptedData.length; i++) {
-                for (int j = 0; j < encryptedData[i].length; j+=3) {
-                    //TODO:
-                    //Enviar los marditos datos encriptados
-                }
-            }
+            sendData(encryptedData);
 
         } else {
             objOut.writeObject("");
         }
+    }
+
+    private static void sendData(byte[][] data) throws Exception {
+        for (int i = 0; i < data.length; i++) {
+            for (int j = 0; j < 128; j++) {
+                out.write(data[i][j]);
+            }
+        }
+
+        for (int i = 0; i < 32; i++) {
+            out.write(85);
+        }
+
+        System.out.println();
     }
 
     private static void initializeConnection() throws Exception {
@@ -108,7 +118,7 @@ public class Main {
         socket = ss.accept();
         System.out.println("Client received");
 
-        out = new BufferedWriter(new PrintWriter(socket.getOutputStream()));
+        out = socket.getOutputStream();
         objIn = new ObjectInputStream(socket.getInputStream());
         objOut = new ObjectOutputStream(socket.getOutputStream());
     }
